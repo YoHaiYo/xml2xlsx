@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XML to XLSX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 50px;
+      }
+      input[type="file"] {
+        margin: 20px 0;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>보미퍼스트치과 세금계산서</h1>
+    <h2>XML to XLSX Converter</h2>
+    <p>Upload an XML file and download it as an XLSX file</p>
+
+    <input type="file" id="xmlFile" accept=".xml" />
+    <br />
+    <button onclick="convertXMLtoXLSX()">Convert to XLSX</button>
+
+    <script>
+      function convertXMLtoXLSX() {
+        const fileInput = document.getElementById("xmlFile");
+        const file = fileInput.files[0];
+
+        if (!file) {
+          alert("Please select an XML file first.");
+          return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+          const xmlData = event.target.result;
+
+          // 파싱할 XML을 DOM 파서로 변환
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlData, "text/xml");
+
+          // ds:Signature 요소 제거
+          const signatureElements = xmlDoc.getElementsByTagNameNS(
+            "http://www.w3.org/2000/09/xmldsig#",
+            "Signature"
+          );
+          if (signatureElements.length > 0) {
+            for (let i = 0; i < signatureElements.length; i++) {
+              signatureElements[i].parentNode.removeChild(signatureElements[i]);
+            }
+          }
+
+          // 데이터 추출 (예시: XML의 모든 태그를 반복하면서 데이터를 가져옴)
+          const rows = [];
+          const elements = xmlDoc.getElementsByTagName("*");
+
+          for (let i = 0; i < elements.length; i++) {
+            const node = elements[i];
+
+            // ds:Signature 태그는 이미 제거되었으므로, 해당 노드만 무시
+            if (node.namespaceURI !== "http://www.w3.org/2000/09/xmldsig#") {
+              const row = [];
+              row.push(node.tagName);
+              row.push(node.textContent.trim());
+              rows.push(row);
+            }
+          }
+
+          // XLSX 데이터로 변환
+          const worksheet = XLSX.utils.aoa_to_sheet(rows);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+          // XLSX 파일로 다운로드
+          XLSX.writeFile(workbook, "converted.xlsx");
+        };
+
+        reader.readAsText(file);
+      }
+    </script>
+  </body>
+</html>
